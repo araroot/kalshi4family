@@ -11,15 +11,13 @@ export async function POST(request: Request) {
   const { error } = await supabase.rpc('distribute_weekly_allowance')
 
   if (error) {
-    // Fallback: direct update
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ weekly_points: 100, updated_at: new Date().toISOString() })
+      .update({ weekly_points: 200, updated_at: new Date().toISOString() })
       .eq('is_approved', true)
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  // Notify all approved users
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id')
@@ -29,8 +27,8 @@ export async function POST(request: Request) {
     await supabase.from('notifications').insert(
       profiles.map(p => ({
         user_id: p.id,
-        title: '💰 Weekly 100 points!',
-        message: 'Your weekly 100 points have arrived. Use them this week or lose them!',
+        title: '🎉 Saturday 200 points!',
+        message: "Your 200 weekly points just dropped! Use them before next Saturday or they're gone.",
         type: 'system' as const,
       }))
     )

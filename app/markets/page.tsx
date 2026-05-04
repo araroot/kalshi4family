@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, TrendingUp, Search } from 'lucide-react'
 import MarketCard from '@/components/MarketCard'
+import WelcomeClient from './WelcomeClient'
 import type { Market, Bet } from '@/types'
 
 const CATEGORIES = ['All', 'Sports', 'Family', 'Politics', 'Entertainment', 'Finance', 'General']
@@ -36,7 +37,10 @@ export default async function MarketsPage({ searchParams }: PageProps) {
     query = query.ilike('title', `%${params.q}%`)
   }
 
-  const { data: markets } = await query
+  const [{ data: markets }, { data: profile }] = await Promise.all([
+    query,
+    supabase.from('profiles').select('id,name').eq('id', user.id).single(),
+  ])
 
   // Fetch user's bets and comment counts
   const marketIds = markets?.map(m => m.id) ?? []
@@ -63,6 +67,9 @@ export default async function MarketsPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
+      {/* Welcome confetti — fires once on first login after approval */}
+      {profile && <WelcomeClient userId={profile.id} name={profile.name} />}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>

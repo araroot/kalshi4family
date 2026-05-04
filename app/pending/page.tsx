@@ -19,7 +19,8 @@ export default function PendingPage() {
           <h1 className="text-2xl font-bold text-white mb-2">Pending Approval</h1>
           <p className="text-[#a1a1aa] text-sm leading-relaxed mb-6">
             Your account has been created! The family admin will approve you shortly. You&apos;ll start with{' '}
-            <span className="text-white font-semibold">1,000 points</span> once approved.
+            <span className="text-white font-semibold">1,000 points</span> and get{' '}
+            <span className="text-white font-semibold">200 fresh points every Saturday</span> (use them or lose them).
           </p>
           <div className="rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] p-3 text-xs text-[#a1a1aa]">
             Have questions? Ask the admin directly — they&apos;ll approve your account via email notification.

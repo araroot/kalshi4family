@@ -177,12 +177,13 @@ begin
 end;
 $$;
 
--- Distribute weekly allowance (called by cron)
+-- Distribute Saturday allowance (called by cron every Saturday 00:00 UTC)
 create or replace function public.distribute_weekly_allowance()
 returns void language plpgsql security definer as $$
 begin
+  -- Reset to 200, discarding any unused points from last week (use-it-or-lose-it)
   update public.profiles
-  set weekly_points = 100, updated_at = now()
+  set weekly_points = 200, updated_at = now()
   where is_approved = true;
 end;
 $$;

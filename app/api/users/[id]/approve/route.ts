@@ -20,8 +20,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Notify the approved user
   await supabase.from('notifications').insert({
     user_id: targetUserId,
-    title: '✅ Account approved!',
-    message: 'Welcome to Kalshi4Family! You have 1,000 points to start. Good luck!',
+    title: '🎉 You\'re in! 1,000 points incoming!',
+    message: 'Welcome to Kalshi4Family! You start with 1,000 points. Every Saturday you get a fresh 200 more — use them before the next Saturday or they vanish. Let\'s go!',
     type: 'system',
   })
 
