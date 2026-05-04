@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,7 +12,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (typeof position !== 'boolean') return NextResponse.json({ error: 'position must be boolean' }, { status: 400 })
   if (!Number.isInteger(amount) || amount <= 0) return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
 
-  // Load market, profile, check for existing bet in parallel
   const [{ data: market }, { data: profile }, { data: existingBet }] = await Promise.all([
     supabase.from('markets').select('id,status,yes_pool,no_pool,close_date').eq('id', marketId).single(),
     supabase.from('profiles').select('permanent_points,weekly_points,is_approved').eq('id', user.id).single(),
@@ -27,31 +27,29 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const totalPoints = profile.permanent_points + profile.weekly_points
   if (amount > totalPoints) return NextResponse.json({ error: 'Insufficient points' }, { status: 400 })
 
-  // Deduct weekly points first, then permanent
   const weeklyUsed = Math.min(amount, profile.weekly_points)
   const permanentUsed = amount - weeklyUsed
 
-  // Atomic update: deduct points and place bet
-  const [betResult] = await Promise.all([
-    supabase.from('bets').insert({
-      market_id: marketId,
-      user_id: user.id,
-      position,
-      amount,
-      weekly_points_used: weeklyUsed,
-      permanent_points_used: permanentUsed,
-    }).select().single(),
-  ])
+  const admin = createAdminClient()
+
+  const betResult = await admin.from('bets').insert({
+    market_id: marketId,
+    user_id: user.id,
+    position,
+    amount,
+    weekly_points_used: weeklyUsed,
+    permanent_points_used: permanentUsed,
+  }).select().single()
 
   if (betResult.error) return NextResponse.json({ error: betResult.error.message }, { status: 500 })
 
-  // Update profile points and market pool
+  // Deduct points from bettor and update market pool
   await Promise.all([
-    supabase.from('profiles').update({
+    admin.from('profiles').update({
       weekly_points: profile.weekly_points - weeklyUsed,
       permanent_points: profile.permanent_points - permanentUsed,
     }).eq('id', user.id),
-    supabase.from('markets').update({
+    admin.from('markets').update({
       yes_pool: position ? market.yes_pool + amount : market.yes_pool,
       no_pool: !position ? market.no_pool + amount : market.no_pool,
     }).eq('id', marketId),

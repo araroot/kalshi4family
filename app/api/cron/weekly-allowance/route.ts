@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -7,24 +8,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createClient()
-  const { error } = await supabase.rpc('distribute_weekly_allowance')
+  const admin = createAdminClient()
+  const { error } = await admin.rpc('distribute_weekly_allowance')
 
   if (error) {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from('profiles')
       .update({ weekly_points: 200, updated_at: new Date().toISOString() })
       .eq('is_approved', true)
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  const { data: profiles } = await supabase
+  const { data: profiles } = await admin
     .from('profiles')
     .select('id')
     .eq('is_approved', true)
 
   if (profiles?.length) {
-    await supabase.from('notifications').insert(
+    await admin.from('notifications').insert(
       profiles.map(p => ({
         user_id: p.id,
         title: '🎉 Saturday 200 points!',

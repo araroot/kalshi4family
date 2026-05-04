@@ -1,8 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: marketId } = await params
+
+  // Verify caller identity with normal client (RLS-respecting)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,39 +31,37 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const winners = bets.filter(b => b.position === outcome)
   const losers = bets.filter(b => b.position !== outcome)
 
-  // Calculate payouts for winners
   const payouts: Record<string, number> = {}
   winners.forEach(bet => {
     payouts[bet.id] = winningPool > 0 ? Math.round((bet.amount / winningPool) * totalPool) : bet.amount
   })
 
-  // Mark market resolved
-  await supabase.from('markets').update({
+  // Use service-role client for all writes that touch other users' data
+  const admin = createAdminClient()
+
+  await admin.from('markets').update({
     status: 'resolved',
     outcome,
     updated_at: new Date().toISOString(),
   }).eq('id', marketId)
 
-  // Update bet payouts and award points to winners
   for (const bet of winners) {
     const payout = payouts[bet.id]
-    const { data: prof } = await supabase.from('profiles').select('permanent_points').eq('id', bet.user_id).single()
+    const { data: prof } = await admin.from('profiles').select('permanent_points').eq('id', bet.user_id).single()
     if (!prof) continue
     await Promise.all([
-      supabase.from('bets').update({ payout }).eq('id', bet.id),
-      supabase.from('profiles').update({
+      admin.from('bets').update({ payout }).eq('id', bet.id),
+      admin.from('profiles').update({
         permanent_points: prof.permanent_points + payout,
         updated_at: new Date().toISOString(),
       }).eq('id', bet.user_id),
     ])
   }
 
-  // Mark losing bets with payout = 0
   for (const bet of losers) {
-    await supabase.from('bets').update({ payout: 0 }).eq('id', bet.id)
+    await admin.from('bets').update({ payout: 0 }).eq('id', bet.id)
   }
 
-  // Notify all bettors
   const notifications = bets.map(bet => {
     const won = bet.position === outcome
     const payout = payouts[bet.id] ?? 0
@@ -73,7 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       type: won ? 'win' as const : 'loss' as const,
     }
   })
-  if (notifications.length) await supabase.from('notifications').insert(notifications)
+  if (notifications.length) await admin.from('notifications').insert(notifications)
 
   return NextResponse.json({ ok: true, winners: winners.length, losers: losers.length, total_pool: totalPool })
 }

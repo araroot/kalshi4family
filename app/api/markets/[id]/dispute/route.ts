@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -17,7 +18,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { data: existing } = await supabase.from('disputes').select('id').eq('market_id', marketId).eq('challenger_id', user.id).maybeSingle()
   if (existing) return NextResponse.json({ error: 'Already disputed' }, { status: 400 })
 
-  const { data, error } = await supabase.from('disputes').insert({
+  const admin = createAdminClient()
+
+  const { data, error } = await admin.from('disputes').insert({
     market_id: marketId,
     challenger_id: user.id,
     reason: reason.trim(),
@@ -25,14 +28,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Update market status to disputed
-  await supabase.from('markets').update({ status: 'disputed', updated_at: new Date().toISOString() }).eq('id', marketId)
-
-  // Notify creator
-  await supabase.from('notifications').insert({
+  await admin.from('markets').update({ status: 'disputed', updated_at: new Date().toISOString() }).eq('id', marketId)
+  await admin.from('notifications').insert({
     user_id: market.creator_id,
     title: '⚠️ Dispute filed',
-    message: `Someone has disputed the resolution of your market.`,
+    message: 'Someone has disputed the resolution of your market.',
     type: 'dispute',
   })
 
@@ -51,7 +51,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!market) return NextResponse.json({ error: 'Market not found' }, { status: 404 })
   if (market.creator_id !== user.id) return NextResponse.json({ error: 'Only creator can resolve disputes' }, { status: 403 })
 
-  const { data, error } = await supabase.from('disputes').update({
+  const admin = createAdminClient()
+
+  const { data, error } = await admin.from('disputes').update({
     status,
     resolution_note: resolution_note?.trim() ?? null,
     updated_at: new Date().toISOString(),
@@ -59,10 +61,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // If all disputes resolved, update market back to resolved
-  const { data: pending } = await supabase.from('disputes').select('id').eq('market_id', marketId).eq('status', 'pending')
+  const { data: pending } = await admin.from('disputes').select('id').eq('market_id', marketId).eq('status', 'pending')
   if (!pending?.length) {
-    await supabase.from('markets').update({ status: 'resolved', updated_at: new Date().toISOString() }).eq('id', marketId)
+    await admin.from('markets').update({ status: 'resolved', updated_at: new Date().toISOString() }).eq('id', marketId)
   }
 
   return NextResponse.json(data)
