@@ -50,6 +50,7 @@ export interface Comment {
   user_id: string
   content: string
   parent_id: string | null
+  attachment_url: string | null
   created_at: string
   user?: Profile
   replies?: Comment[]
