@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, CalendarDays, HelpCircle } from 'lucide-react'
+import { ArrowLeft, CalendarDays, HelpCircle, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
 const CATEGORIES = ['General', 'Sports', 'Family', 'Politics', 'Entertainment', 'Finance']
@@ -17,6 +17,37 @@ export default function NewMarketPage() {
   const [closeDate, setCloseDate] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [refining, setRefining] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  async function refineDescription() {
+    if (!title.trim()) { setError('Add a question first so AI has context'); return }
+    setError('')
+    setRefining(true)
+    setDescription('')
+
+    try {
+      const res = await fetch('/api/ai/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description }),
+      })
+      if (!res.ok) { setError('AI refinement failed — check your API key'); setRefining(false); return }
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let result = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        result += decoder.decode(value, { stream: true })
+        setDescription(result)
+      }
+    } catch {
+      setError('AI refinement failed')
+    }
+    setRefining(false)
+  }
 
   const minDate = new Date()
   minDate.setMinutes(minDate.getMinutes() + 30)
@@ -90,15 +121,29 @@ export default function NewMarketPage() {
               <label className="text-sm font-medium text-[#a1a1aa]">
                 Description <span className="text-[#555] font-normal">(optional)</span>
               </label>
-              <span className="text-xs text-[#555]">{description.length}/5000</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#555]">{description.length}/5000</span>
+                <button
+                  type="button"
+                  onClick={refineDescription}
+                  disabled={refining || !title.trim()}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#312e81]/60 border border-[#4338ca]/50 text-[#a5b4fc] hover:bg-[#312e81] hover:border-[#6366f1]"
+                >
+                  <Sparkles className={`w-3 h-3 ${refining ? 'animate-spin' : ''}`} />
+                  {refining ? 'Refining…' : 'Refine with AI'}
+                </button>
+              </div>
             </div>
             <textarea
+              ref={textareaRef}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder={"Add context, rules for resolution, source of truth…\n\nMarkdown supported: **bold**, _italic_, bullet lists, etc."}
+              placeholder={"Add context, rules for resolution, source of truth…\n\nMarkdown supported: **bold**, _italic_, bullet lists, etc.\n\nOr click \"Refine with AI\" to generate a precise description from your question."}
               rows={8}
               maxLength={5000}
-              className="w-full rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-white px-3 py-2.5 text-sm placeholder:text-[#555] focus:outline-none focus:border-[#6366f1] transition-colors resize-y font-mono leading-relaxed"
+              className={`w-full rounded-lg bg-[#1a1a1a] border text-white px-3 py-2.5 text-sm placeholder:text-[#555] focus:outline-none transition-colors resize-y font-mono leading-relaxed ${
+                refining ? 'border-[#4338ca]/70 animate-pulse' : 'border-[#2a2a2a] focus:border-[#6366f1]'
+              }`}
             />
             <p className="text-xs text-[#555] mt-1">Markdown supported — **bold**, _italic_, `code`, bullet lists, ## headings</p>
           </div>
