@@ -9,6 +9,7 @@ import ShareButton from '@/components/ShareButton'
 import OddsChart from '@/components/OddsChart'
 import ResolvePanel from './ResolvePanel'
 import DisputePanel from './DisputePanel'
+import MarkdownDescription from '@/components/MarkdownDescription'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -77,7 +78,7 @@ export default async function MarketDetailPage({ params }: PageProps) {
             <h1 className="text-xl font-bold text-white leading-snug mb-2">{market.title}</h1>
 
             {market.description && (
-              <p className="text-sm text-[#a1a1aa] leading-relaxed mb-3 whitespace-pre-wrap">{market.description}</p>
+              <MarkdownDescription content={market.description} />
             )}
 
             <div className="flex flex-wrap items-center gap-4 text-xs text-[#555]">

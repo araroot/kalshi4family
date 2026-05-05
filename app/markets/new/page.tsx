@@ -78,25 +78,29 @@ export default function NewMarketPage() {
               onChange={e => setTitle(e.target.value)}
               placeholder="Will India win the next cricket match?"
               required
-              maxLength={200}
+              maxLength={300}
               className="w-full h-10 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-white px-3 text-sm placeholder:text-[#555] focus:outline-none focus:border-[#6366f1] transition-colors"
             />
-            <p className="text-xs text-[#555] mt-1">{title.length}/200</p>
+            <p className="text-xs text-[#555] mt-1">{title.length}/300</p>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-[#a1a1aa] mb-1.5">
-              Description <span className="text-[#555] font-normal">(optional)</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-[#a1a1aa]">
+                Description <span className="text-[#555] font-normal">(optional)</span>
+              </label>
+              <span className="text-xs text-[#555]">{description.length}/5000</span>
+            </div>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Add context, rules for resolution, source of truth…"
-              rows={3}
-              maxLength={1000}
-              className="w-full rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-white px-3 py-2 text-sm placeholder:text-[#555] focus:outline-none focus:border-[#6366f1] transition-colors resize-none"
+              placeholder={"Add context, rules for resolution, source of truth…\n\nMarkdown supported: **bold**, _italic_, bullet lists, etc."}
+              rows={8}
+              maxLength={5000}
+              className="w-full rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-white px-3 py-2.5 text-sm placeholder:text-[#555] focus:outline-none focus:border-[#6366f1] transition-colors resize-y font-mono leading-relaxed"
             />
+            <p className="text-xs text-[#555] mt-1">Markdown supported — **bold**, _italic_, `code`, bullet lists, ## headings</p>
           </div>
 
           {/* Category + Close date row */}
