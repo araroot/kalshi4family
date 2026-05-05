@@ -42,11 +42,12 @@ export default async function MarketsPage({ searchParams }: PageProps) {
     supabase.from('profiles').select('id,name').eq('id', user.id).single(),
   ])
 
-  // Fetch user's bets and comment counts
+  // Fetch user's bets, comment counts, and odds history in parallel
   const marketIds = markets?.map(m => m.id) ?? []
-  const [{ data: userBets }, { data: commentCounts }] = await Promise.all([
+  const [{ data: userBets }, { data: commentCounts }, { data: oddsHistory }] = await Promise.all([
     supabase.from('bets').select('*').eq('user_id', user.id).in('market_id', marketIds),
     supabase.from('comments').select('market_id').in('market_id', marketIds),
+    supabase.from('market_odds_history').select('market_id,yes_pct').in('market_id', marketIds).order('created_at', { ascending: true }),
   ])
 
   const betsMap: Record<string, Bet> = {}
@@ -57,10 +58,17 @@ export default async function MarketsPage({ searchParams }: PageProps) {
     commentCountMap[c.market_id] = (commentCountMap[c.market_id] ?? 0) + 1
   })
 
+  const oddsMap: Record<string, number[]> = {}
+  oddsHistory?.forEach(o => {
+    oddsMap[o.market_id] ??= []
+    oddsMap[o.market_id].push(o.yes_pct)
+  })
+
   const enrichedMarkets: Market[] = (markets ?? []).map(m => ({
     ...m,
     user_bet: betsMap[m.id] ?? null,
     comment_count: commentCountMap[m.id] ?? 0,
+    odds_history: oddsMap[m.id] ?? [50],
   }))
 
   const openCount = enrichedMarkets.filter(m => m.status === 'open').length

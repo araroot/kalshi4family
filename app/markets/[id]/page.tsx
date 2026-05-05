@@ -6,6 +6,7 @@ import Link from 'next/link'
 import BetPanel from '@/components/BetPanel'
 import CommentThread from '@/components/CommentThread'
 import ShareButton from '@/components/ShareButton'
+import OddsChart from '@/components/OddsChart'
 import ResolvePanel from './ResolvePanel'
 import DisputePanel from './DisputePanel'
 
@@ -35,11 +36,13 @@ export default async function MarketDetailPage({ params }: PageProps) {
     { data: allBets },
     { data: comments },
     { data: disputes },
+    { data: oddsHistory },
   ] = await Promise.all([
     supabase.from('bets').select('*').eq('market_id', id).eq('user_id', user.id).maybeSingle(),
     supabase.from('bets').select('*, user:profiles!user_id(id,name,email)').eq('market_id', id),
     supabase.from('comments').select('*, user:profiles!user_id(id,name,email)').eq('market_id', id).order('created_at', { ascending: true }),
     supabase.from('disputes').select('*, challenger:profiles!challenger_id(id,name,email)').eq('market_id', id).order('created_at', { ascending: false }),
+    supabase.from('market_odds_history').select('yes_pct,yes_pool,no_pool,created_at').eq('market_id', id).order('created_at', { ascending: true }),
   ])
 
   const isCreator = market.creator_id === user.id
@@ -99,20 +102,9 @@ export default async function MarketDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Odds bar */}
+          {/* Odds chart */}
           <div className="rounded-xl border border-[#2a2a2a] bg-[#111] p-5">
-            <div className="flex justify-between text-sm font-bold mb-2">
-              <span className="text-[#22c55e]">YES {yesPct}%</span>
-              <span className="text-[#ef4444]">NO {100 - yesPct}%</span>
-            </div>
-            <div className="h-3 rounded-full bg-[#1a1a1a] overflow-hidden flex mb-2">
-              <div className="h-full bg-gradient-to-r from-[#16a34a] to-[#22c55e] transition-all duration-700" style={{ width: `${yesPct}%` }} />
-              <div className="h-full bg-gradient-to-l from-[#dc2626] to-[#ef4444] flex-1" />
-            </div>
-            <div className="flex justify-between text-xs text-[#555]">
-              <span>{market.yes_pool.toLocaleString()} pts</span>
-              <span>{market.no_pool.toLocaleString()} pts</span>
-            </div>
+            <OddsChart history={oddsHistory ?? []} status={market.status} />
           </div>
 
           {/* Bettors list */}

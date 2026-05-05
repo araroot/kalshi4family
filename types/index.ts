@@ -29,6 +29,7 @@ export interface Market {
   creator?: Profile
   user_bet?: Bet | null
   comment_count?: number
+  odds_history?: number[]
 }
 
 export interface Bet {

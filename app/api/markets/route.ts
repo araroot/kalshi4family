@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
@@ -32,5 +33,16 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Seed the opening 50/50 odds datapoint
+  const admin = createAdminClient()
+  await admin.from('market_odds_history').insert({
+    market_id: data.id,
+    yes_pct: 50,
+    yes_pool: 0,
+    no_pool: 0,
+    created_at: data.created_at,
+  })
+
   return NextResponse.json(data, { status: 201 })
 }

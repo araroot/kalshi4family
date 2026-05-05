@@ -43,16 +43,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (betResult.error) return NextResponse.json({ error: betResult.error.message }, { status: 500 })
 
-  // Deduct points from bettor and update market pool
+  const newYesPool = position ? market.yes_pool + amount : market.yes_pool
+  const newNoPool = !position ? market.no_pool + amount : market.no_pool
+  const newTotal = newYesPool + newNoPool
+  const newYesPct = newTotal > 0 ? Math.round((newYesPool / newTotal) * 100) : 50
+
+  // Deduct points, update market pool, record odds snapshot
   await Promise.all([
     admin.from('profiles').update({
       weekly_points: profile.weekly_points - weeklyUsed,
       permanent_points: profile.permanent_points - permanentUsed,
     }).eq('id', user.id),
     admin.from('markets').update({
-      yes_pool: position ? market.yes_pool + amount : market.yes_pool,
-      no_pool: !position ? market.no_pool + amount : market.no_pool,
+      yes_pool: newYesPool,
+      no_pool: newNoPool,
     }).eq('id', marketId),
+    admin.from('market_odds_history').insert({
+      market_id: marketId,
+      yes_pct: newYesPct,
+      yes_pool: newYesPool,
+      no_pool: newNoPool,
+    }),
   ])
 
   return NextResponse.json({ bet: betResult.data }, { status: 201 })
