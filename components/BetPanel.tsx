@@ -1,19 +1,17 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Coins, TrendingUp, TrendingDown, Lock } from 'lucide-react'
-import type { Market, Profile } from '@/types'
+import { Coins, Lock, TrendingUp } from 'lucide-react'
+import type { Market, Profile, Bet } from '@/types'
 
 interface BetPanelProps {
   market: Market
   profile: Profile
-  existingBet: { position: boolean; amount: number } | null
+  existingBets: Bet[]
 }
 
-export default function BetPanel({ market, profile, existingBet }: BetPanelProps) {
+export default function BetPanel({ market, profile, existingBets }: BetPanelProps) {
   const router = useRouter()
-  const supabase = createClient()
   const [position, setPosition] = useState<boolean>(true)
   const [amount, setAmount] = useState(50)
   const [loading, setLoading] = useState(false)
@@ -25,7 +23,15 @@ export default function BetPanel({ market, profile, existingBet }: BetPanelProps
   const yesPct = total > 0 ? Math.round((market.yes_pool / total) * 100) : 50
   const noPct = 100 - yesPct
 
-  // Estimated payout calculation
+  // Multiplier: how many times your stake comes back if you win (based on current pool)
+  const yesMultiplier = market.yes_pool > 0
+    ? ((total + amount) / (market.yes_pool + (position ? amount : 0))).toFixed(2)
+    : '∞'
+  const noMultiplier = market.no_pool > 0
+    ? ((total + amount) / (market.no_pool + (!position ? amount : 0))).toFixed(2)
+    : '∞'
+  const currentMultiplier = position ? yesMultiplier : noMultiplier
+
   const potAfterBet = total + amount
   const myPool = position ? market.yes_pool + amount : market.no_pool + amount
   const estimatedPayout = myPool > 0 ? Math.round((amount / myPool) * potAfterBet) : amount
@@ -63,47 +69,51 @@ export default function BetPanel({ market, profile, existingBet }: BetPanelProps
           <span className="text-sm font-medium">Betting {market.status === 'resolved' ? 'closed' : 'locked'}</span>
         </div>
         <OddsDisplay yesPct={yesPct} noPct={noPct} yesPool={market.yes_pool} noPool={market.no_pool} />
-        {existingBet && <ExistingBetDisplay bet={existingBet} outcome={market.outcome} />}
-      </div>
-    )
-  }
-
-  if (existingBet) {
-    return (
-      <div className="rounded-xl border border-[#2a2a2a] bg-[#111] p-5">
-        <p className="text-sm text-[#a1a1aa] mb-4 font-medium">Your position</p>
-        <ExistingBetDisplay bet={existingBet} outcome={market.outcome} />
-        <OddsDisplay yesPct={yesPct} noPct={noPct} yesPool={market.yes_pool} noPool={market.no_pool} />
-        <p className="text-xs text-[#555] mt-3">One bet per market. Root for your team! 🤞</p>
+        {existingBets.length > 0 && <BetsList bets={existingBets} outcome={market.outcome} className="mt-4" />}
       </div>
     )
   }
 
   return (
     <div className="rounded-xl border border-[#2a2a2a] bg-[#111] p-5">
-      <p className="text-sm text-white font-semibold mb-4">Place your bet</p>
+      {/* Existing bets summary */}
+      {existingBets.length > 0 && (
+        <div className="mb-4">
+          <BetsList bets={existingBets} outcome={market.outcome} />
+          <div className="my-4 border-t border-[#1a1a1a]" />
+          <p className="text-xs text-[#a1a1aa] font-medium mb-3">Add another bet</p>
+        </div>
+      )}
 
-      {/* YES/NO toggle */}
+      {!existingBets.length && <p className="text-sm text-white font-semibold mb-4">Place your bet</p>}
+
+      {/* YES/NO toggle with multipliers */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         <button
           onClick={() => setPosition(true)}
-          className={`h-11 rounded-lg font-bold text-sm transition-all ${
+          className={`rounded-lg font-bold text-sm transition-all py-2.5 px-3 ${
             position
               ? 'bg-[#16a34a] text-white border-2 border-[#22c55e]/50 shadow-lg shadow-[#16a34a]/20'
               : 'bg-[#052e16]/60 text-[#22c55e] border border-[#166534]/40 hover:bg-[#052e16]'
           }`}
         >
-          YES {yesPct}%
+          <div>YES {yesPct}%</div>
+          <div className={`text-xs mt-0.5 font-normal ${position ? 'text-[#86efac]' : 'text-[#16a34a]'}`}>
+            {market.yes_pool > 0 ? `${yesMultiplier}x return` : 'First bet!'}
+          </div>
         </button>
         <button
           onClick={() => setPosition(false)}
-          className={`h-11 rounded-lg font-bold text-sm transition-all ${
+          className={`rounded-lg font-bold text-sm transition-all py-2.5 px-3 ${
             !position
               ? 'bg-[#dc2626] text-white border-2 border-[#ef4444]/50 shadow-lg shadow-[#dc2626]/20'
               : 'bg-[#450a0a]/60 text-[#ef4444] border border-[#7f1d1d]/40 hover:bg-[#450a0a]'
           }`}
         >
-          NO {noPct}%
+          <div>NO {noPct}%</div>
+          <div className={`text-xs mt-0.5 font-normal ${!position ? 'text-[#fca5a5]' : 'text-[#dc2626]'}`}>
+            {market.no_pool > 0 ? `${noMultiplier}x return` : 'First bet!'}
+          </div>
         </button>
       </div>
 
@@ -129,30 +139,37 @@ export default function BetPanel({ market, profile, existingBet }: BetPanelProps
             max={totalPoints}
             className="flex-1 h-10 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-white px-3 text-sm focus:outline-none focus:border-[#6366f1] transition-colors"
           />
+          <button onClick={() => setAmount(Math.floor(totalPoints / 4))} className="px-3 h-10 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-xs text-[#a1a1aa] hover:text-white transition-colors">¼</button>
           <button onClick={() => setAmount(Math.floor(totalPoints / 2))} className="px-3 h-10 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-xs text-[#a1a1aa] hover:text-white transition-colors">½</button>
           <button onClick={() => setAmount(totalPoints)} className="px-3 h-10 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-xs text-[#a1a1aa] hover:text-white transition-colors">Max</button>
         </div>
 
-        {/* Slider */}
         <input
           type="range"
           min={1}
-          max={totalPoints}
+          max={Math.max(1, totalPoints)}
           value={amount}
           onChange={e => setAmount(parseInt(e.target.value))}
           className="w-full accent-[#6366f1]"
         />
       </div>
 
-      {/* Estimated payout */}
-      <div className="rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] p-3 mb-4">
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-[#555]">Est. payout if {position ? 'YES' : 'NO'} wins</span>
-          <span className="text-white font-semibold">{estimatedPayout.toLocaleString()} pts</span>
+      {/* Payout preview */}
+      <div className={`rounded-lg border p-3 mb-4 ${position ? 'bg-[#052e16]/40 border-[#166534]/30' : 'bg-[#450a0a]/40 border-[#7f1d1d]/30'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-[#555]">Bet {amount} pts on {position ? 'YES' : 'NO'}</span>
+          <span className="text-sm font-bold text-white flex items-center gap-1">
+            <TrendingUp className="w-3.5 h-3.5 text-[#6366f1]" />
+            {currentMultiplier}x
+          </span>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-[#555]">Potential profit</span>
-          <span className={estimatedProfit >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}>
+          <span className="text-[#555]">Win payout</span>
+          <span className="font-semibold text-white">{estimatedPayout.toLocaleString()} pts</span>
+        </div>
+        <div className="flex justify-between text-xs mt-1">
+          <span className="text-[#555]">Profit if win</span>
+          <span className={`font-semibold ${estimatedProfit >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
             {estimatedProfit >= 0 ? '+' : ''}{estimatedProfit.toLocaleString()} pts
           </span>
         </div>
@@ -164,16 +181,54 @@ export default function BetPanel({ market, profile, existingBet }: BetPanelProps
       <button
         onClick={placeBet}
         disabled={loading || amount <= 0 || amount > totalPoints}
-        className={`w-full h-10 rounded-lg text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`w-full h-11 rounded-lg text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
           position
             ? 'bg-[#16a34a] hover:bg-[#15803d]'
             : 'bg-[#dc2626] hover:bg-[#b91c1c]'
         }`}
       >
-        {loading ? 'Placing bet…' : `Bet ${amount} pts on ${position ? 'YES' : 'NO'}`}
+        {loading ? 'Placing bet…' : `Bet ${amount} pts on ${position ? 'YES' : 'NO'} → win ${estimatedPayout.toLocaleString()}`}
       </button>
 
       <OddsDisplay yesPct={yesPct} noPct={noPct} yesPool={market.yes_pool} noPool={market.no_pool} className="mt-4" />
+    </div>
+  )
+}
+
+function BetsList({ bets, outcome, className = '' }: { bets: Bet[]; outcome: boolean | null | undefined; className?: string }) {
+  const totalWagered = bets.reduce((s, b) => s + b.amount, 0)
+  const totalPayout = bets.reduce((s, b) => s + (b.payout ?? 0), 0)
+  const resolved = bets.some(b => b.payout !== null)
+
+  return (
+    <div className={className}>
+      <p className="text-xs text-[#a1a1aa] font-medium mb-2">Your positions ({bets.length})</p>
+      <div className="space-y-1.5">
+        {bets.map(bet => {
+          const won = outcome !== null && outcome !== undefined && bet.position === outcome
+          const lost = outcome !== null && outcome !== undefined && bet.position !== outcome
+          return (
+            <div key={bet.id} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs border ${
+              won ? 'bg-[#052e16]/60 border-[#166534]/40' :
+              lost ? 'bg-[#450a0a]/60 border-[#7f1d1d]/40' :
+              'bg-[#1a1a1a] border-[#2a2a2a]'
+            }`}>
+              <span className={`font-bold ${bet.position ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                {bet.position ? 'YES' : 'NO'} — {bet.amount.toLocaleString()} pts
+              </span>
+              {won && <span className="text-[#22c55e] font-bold">+{((bet.payout ?? 0) - bet.amount).toLocaleString()} 🎉</span>}
+              {lost && <span className="text-[#ef4444]">Lost</span>}
+              {!won && !lost && <span className="text-[#555]">Pending</span>}
+            </div>
+          )
+        })}
+      </div>
+      {resolved && (
+        <div className="mt-2 flex justify-between text-xs text-[#555]">
+          <span>Total wagered: {totalWagered.toLocaleString()} pts</span>
+          <span>Total payout: <span className={totalPayout >= totalWagered ? 'text-[#22c55e]' : 'text-[#ef4444]'}>{totalPayout.toLocaleString()} pts</span></span>
+        </div>
+      )}
     </div>
   )
 }
@@ -194,31 +249,6 @@ function OddsDisplay({ yesPct, noPct, yesPool, noPool, className = '' }: { yesPc
       <div className="flex justify-between text-xs text-[#555] mt-1">
         <span>{yesPool.toLocaleString()} pts</span>
         <span>{noPool.toLocaleString()} pts</span>
-      </div>
-    </div>
-  )
-}
-
-function ExistingBetDisplay({ bet, outcome }: { bet: { position: boolean; amount: number } | null; outcome: boolean | null | undefined }) {
-  if (!bet) return null
-  const won = outcome !== null && outcome !== undefined && bet.position === outcome
-  const lost = outcome !== null && outcome !== undefined && bet.position !== outcome
-  return (
-    <div className={`rounded-lg p-3 mb-4 border ${
-      won ? 'bg-[#052e16]/80 border-[#166534]/50' :
-      lost ? 'bg-[#450a0a]/80 border-[#7f1d1d]/50' :
-      'bg-[#1a1a1a] border-[#2a2a2a]'
-    }`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-[#a1a1aa] mb-0.5">Your bet</p>
-          <p className={`text-sm font-bold ${bet.position ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
-            {bet.position ? 'YES' : 'NO'} — {bet.amount.toLocaleString()} pts
-          </p>
-        </div>
-        {won && <span className="text-xs font-bold text-[#22c55e] bg-[#052e16] px-2 py-1 rounded-full">WON 🎉</span>}
-        {lost && <span className="text-xs font-bold text-[#ef4444] bg-[#450a0a] px-2 py-1 rounded-full">LOST</span>}
-        {!won && !lost && <span className="text-xs font-medium text-[#a1a1aa]">Pending</span>}
       </div>
     </div>
   )

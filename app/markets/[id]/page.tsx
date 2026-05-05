@@ -32,13 +32,13 @@ export default async function MarketDetailPage({ params }: PageProps) {
   if (!profile) redirect('/login')
 
   const [
-    { data: userBet },
+    { data: userBets },
     { data: allBets },
     { data: comments },
     { data: disputes },
     { data: oddsHistory },
   ] = await Promise.all([
-    supabase.from('bets').select('*').eq('market_id', id).eq('user_id', user.id).maybeSingle(),
+    supabase.from('bets').select('*').eq('market_id', id).eq('user_id', user.id).order('created_at', { ascending: true }),
     supabase.from('bets').select('*, user:profiles!user_id(id,name,email)').eq('market_id', id),
     supabase.from('comments').select('*, user:profiles!user_id(id,name,email)').eq('market_id', id).order('created_at', { ascending: true }),
     supabase.from('disputes').select('*, challenger:profiles!challenger_id(id,name,email)').eq('market_id', id).order('created_at', { ascending: false }),
@@ -179,7 +179,7 @@ export default async function MarketDetailPage({ params }: PageProps) {
           <BetPanel
             market={market}
             profile={profile}
-            existingBet={userBet ? { position: userBet.position, amount: userBet.amount } : null}
+            existingBets={userBets ?? []}
           />
 
           {/* Resolve panel — creator only, when market is locked */}
@@ -188,7 +188,7 @@ export default async function MarketDetailPage({ params }: PageProps) {
           )}
 
           {/* Dispute panel — non-creator, after close */}
-          {!isCreator && (market.status === 'locked' || market.status === 'resolved') && !userBet?.payout && (
+          {!isCreator && (market.status === 'locked' || market.status === 'resolved') && (userBets ?? []).some(b => !b.payout) && (
             <DisputePanel
               marketId={market.id}
               alreadyDisputed={disputes?.some(d => d.challenger_id === user.id) ?? false}

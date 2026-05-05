@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { formatDistanceToNow, isPast } from 'date-fns'
-import { MessageSquare, Coins, Clock, CheckCircle2, XCircle } from 'lucide-react'
-import type { Market } from '@/types'
+import { MessageSquare, Coins, Clock, XCircle, CheckCircle2 } from 'lucide-react'
+import type { Market, Bet } from '@/types'
 import OddsSparkline from './OddsSparkline'
 
 interface MarketCardProps {
@@ -98,16 +98,47 @@ export default function MarketCard({ market }: MarketCardProps) {
         </div>
 
         {/* User bet strip */}
-        {market.user_bet && (
-          <div className={`px-4 py-2 text-xs font-medium flex items-center gap-1.5 border-t ${market.user_bet.position ? 'border-[#166534]/30 bg-[#052e16]/40 text-[#22c55e]' : 'border-[#7f1d1d]/30 bg-[#450a0a]/40 text-[#ef4444]'}`}>
-            <CheckCircle2 className="w-3 h-3" />
-            You bet {market.user_bet.position ? 'YES' : 'NO'} — {market.user_bet.amount.toLocaleString()} pts
-            {market.user_bet.payout != null && (
-              <span className="ml-1 text-[#a1a1aa]">→ {market.user_bet.payout.toLocaleString()} payout</span>
-            )}
-          </div>
+        {market.user_bets && market.user_bets.length > 0 && (
+          <UserBetStrip bets={market.user_bets} yesPct={yesPct} noPct={noPct} total={total} />
         )}
       </div>
     </Link>
+  )
+}
+
+function UserBetStrip({ bets, yesPct, noPct, total }: { bets: Bet[]; yesPct: number; noPct: number; total: number }) {
+  const yesAmt = bets.filter(b => b.position).reduce((s, b) => s + b.amount, 0)
+  const noAmt = bets.filter(b => !b.position).reduce((s, b) => s + b.amount, 0)
+  const hasPayout = bets.some(b => b.payout != null)
+
+  const yesMultiplier = yesAmt > 0 && total > 0
+    ? ((total) / Math.max(1, total * (yesPct / 100))).toFixed(1)
+    : null
+  const noMultiplier = noAmt > 0 && total > 0
+    ? ((total) / Math.max(1, total * (noPct / 100))).toFixed(1)
+    : null
+
+  return (
+    <div className="px-4 py-2 text-xs font-medium flex items-center gap-2 border-t border-[#1a1a1a] bg-[#0d0d0d] flex-wrap">
+      <CheckCircle2 className="w-3 h-3 text-[#6366f1] shrink-0" />
+      {yesAmt > 0 && (
+        <span className="text-[#22c55e]">
+          YES {yesAmt.toLocaleString()} pts
+          {yesMultiplier && !hasPayout && <span className="text-[#555] ml-1">({yesMultiplier}x)</span>}
+        </span>
+      )}
+      {yesAmt > 0 && noAmt > 0 && <span className="text-[#333]">·</span>}
+      {noAmt > 0 && (
+        <span className="text-[#ef4444]">
+          NO {noAmt.toLocaleString()} pts
+          {noMultiplier && !hasPayout && <span className="text-[#555] ml-1">({noMultiplier}x)</span>}
+        </span>
+      )}
+      {hasPayout && (
+        <span className="ml-auto text-[#a1a1aa]">
+          → {bets.reduce((s, b) => s + (b.payout ?? 0), 0).toLocaleString()} pts
+        </span>
+      )}
+    </div>
   )
 }

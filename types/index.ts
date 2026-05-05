@@ -27,7 +27,7 @@ export interface Market {
   created_at: string
   updated_at: string
   creator?: Profile
-  user_bet?: Bet | null
+  user_bets?: Bet[]
   comment_count?: number
   odds_history?: number[]
 }

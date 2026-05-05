@@ -50,8 +50,11 @@ export default async function MarketsPage({ searchParams }: PageProps) {
     supabase.from('market_odds_history').select('market_id,yes_pct').in('market_id', marketIds).order('created_at', { ascending: true }),
   ])
 
-  const betsMap: Record<string, Bet> = {}
-  userBets?.forEach(b => { betsMap[b.market_id] = b })
+  const betsMap: Record<string, Bet[]> = {}
+  userBets?.forEach(b => {
+    betsMap[b.market_id] ??= []
+    betsMap[b.market_id].push(b)
+  })
 
   const commentCountMap: Record<string, number> = {}
   commentCounts?.forEach(c => {
@@ -66,7 +69,7 @@ export default async function MarketsPage({ searchParams }: PageProps) {
 
   const enrichedMarkets: Market[] = (markets ?? []).map(m => ({
     ...m,
-    user_bet: betsMap[m.id] ?? null,
+    user_bets: betsMap[m.id] ?? [],
     comment_count: commentCountMap[m.id] ?? 0,
     odds_history: oddsMap[m.id] ?? [50],
   }))
