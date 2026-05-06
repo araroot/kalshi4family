@@ -7,7 +7,6 @@ import BetPanel from '@/components/BetPanel'
 import CommentThread from '@/components/CommentThread'
 import ShareButton from '@/components/ShareButton'
 import OddsChart from '@/components/OddsChart'
-import Image from 'next/image'
 import ResolvePanel from './ResolvePanel'
 import DisputePanel from './DisputePanel'
 import MarkdownDescription from '@/components/MarkdownDescription'
@@ -92,13 +91,8 @@ export default async function MarketDetailPage({ params }: PageProps) {
                   imageUrl={market.image_url ?? null}
                 />
               ) : market.image_url ? (
-                <Image
-                  src={market.image_url}
-                  alt=""
-                  width={80}
-                  height={80}
-                  className="rounded-xl object-cover shrink-0"
-                />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={market.image_url} alt="" className="w-20 h-20 rounded-xl object-cover shrink-0" />
               ) : null}
 
               <div className="flex-1 min-w-0">

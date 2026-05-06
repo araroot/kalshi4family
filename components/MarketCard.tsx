@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { formatDistanceToNow, isPast } from 'date-fns'
 import { MessageSquare, Coins, Clock, XCircle, CheckCircle2 } from 'lucide-react'
 import type { Market, Bet } from '@/types'
@@ -42,7 +41,8 @@ export default function MarketCard({ market }: MarketCardProps) {
             </div>
             {/* Sparkline or icon */}
             {market.image_url ? (
-              <Image src={market.image_url} alt="" width={40} height={40} className="rounded-lg object-cover shrink-0" />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={market.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
             ) : (
               <OddsSparkline history={history} width={100} height={32} />
             )}

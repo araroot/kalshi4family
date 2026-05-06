@@ -1,8 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, RefreshCw, ImageIcon } from 'lucide-react'
-import Image from 'next/image'
+import { RefreshCw, ImageIcon } from 'lucide-react'
 
 interface Props {
   marketId: string
@@ -47,7 +46,8 @@ export default function GenerateIconButton({ marketId, title, description, image
       >
         {/* Icon or placeholder */}
         {imageUrl ? (
-          <Image src={imageUrl} alt="Market icon" width={80} height={80} className="w-full h-full object-cover" />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-[#1a1a1a] border border-dashed border-[#333] flex items-center justify-center">
             <ImageIcon className="w-6 h-6 text-[#555]" />
