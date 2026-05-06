@@ -30,16 +30,20 @@ export async function POST(request: Request) {
   const { title, description, marketId } = await request.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Title required' }, { status: 400 })
 
-  const prompt = `Create a cute, simple SVG icon (200×200) for a family prediction market about: "${title}"${description ? `\n\nContext: ${description.slice(0, 300)}` : ''}
+  const prompt = `Create an expressive, detailed SVG icon (200×200) for a prediction market about: "${title}"${description ? `\n\nContext: ${description.slice(0, 200)}` : ''}
 
-Requirements:
+Design rules:
 - viewBox="0 0 200 200" width="200" height="200"
-- Vibrant solid rounded-rect background filling the whole canvas
-- One central emoji-style symbol related to the topic
-- No text, no labels, 2-4 shapes max
-- Fun cartoon style, readable at 40px
+- Background: a soft radial or linear gradient (two complementary colors) — NOT a flat solid fill
+- Central illustration: a recognizable emoji-style drawing of the subject, filling ~65% of the canvas, centered
+- Use 6-10 shapes with details: body, highlights, shadows, small accent elements
+- Bold outlines (stroke-width="3" or "4") on main shapes so it reads clearly at 40px
+- Bright saturated colors with strong contrast against the background
+- Add a subtle drop shadow or glow on the main element (use <filter> or offset duplicate)
+- Absolutely no text or letters
+- The viewer should instantly recognize the topic from the icon alone
 
-Output ONLY the raw SVG. No markdown fences, no XML declaration, no explanation. Begin your response with <svg`
+Output ONLY raw SVG. No markdown, no XML declaration, no explanation. Start directly with <svg`
 
   let message
   try {
