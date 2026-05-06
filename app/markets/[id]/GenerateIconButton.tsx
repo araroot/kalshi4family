@@ -38,7 +38,7 @@ export default function GenerateIconButton({ marketId, title, description, image
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col items-start gap-2">
       <button
         onClick={generate}
         disabled={generating}
@@ -49,7 +49,7 @@ export default function GenerateIconButton({ marketId, title, description, image
         {imageUrl ? (
           <Image src={imageUrl} alt="Market icon" width={80} height={80} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
+          <div className="w-full h-full bg-[#1a1a1a] border border-dashed border-[#333] flex items-center justify-center">
             <ImageIcon className="w-6 h-6 text-[#555]" />
           </div>
         )}
@@ -57,21 +57,21 @@ export default function GenerateIconButton({ marketId, title, description, image
         {/* Hover / loading overlay */}
         <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 transition-opacity duration-150 rounded-xl
           ${generating
-            ? 'bg-black/60 opacity-100'
-            : 'bg-black/0 group-hover:bg-black/60 opacity-0 group-hover:opacity-100'
+            ? 'bg-black/70 opacity-100'
+            : 'bg-black/0 group-hover:bg-black/65 opacity-0 group-hover:opacity-100'
           }`}
         >
-          {generating
-            ? <RefreshCw className="w-5 h-5 text-white animate-spin" />
-            : <RefreshCw className="w-5 h-5 text-white" />
-          }
+          <RefreshCw className={`w-5 h-5 text-white ${generating ? 'animate-spin' : ''}`} />
           <span className="text-[10px] font-semibold text-white leading-tight text-center px-1">
             {generating ? 'Generating…' : imageUrl ? 'Regenerate' : 'Generate'}
           </span>
         </div>
       </button>
 
-      {error && <p className="text-xs text-[#f87171] max-w-[80px] leading-tight">{error}</p>}
+      {/* Error shown clearly below with enough width */}
+      {error && (
+        <p className="text-[11px] text-[#f87171] leading-tight w-32 break-words">{error}</p>
+      )}
     </div>
   )
 }
