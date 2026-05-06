@@ -72,10 +72,12 @@ Output ONLY the raw SVG. No markdown fences, no XML declaration, no explanation.
   if (uploadError) return NextResponse.json({ error: `Upload failed: ${uploadError.message}` }, { status: 500 })
 
   const { data: { publicUrl } } = admin.storage.from('market-images').getPublicUrl(storagePath)
+  // Append timestamp so regenerated icons bypass browser/CDN cache
+  const urlWithBust = `${publicUrl}?v=${Date.now()}`
 
   if (marketId) {
-    await admin.from('markets').update({ image_url: publicUrl }).eq('id', marketId)
+    await admin.from('markets').update({ image_url: urlWithBust }).eq('id', marketId)
   }
 
-  return NextResponse.json({ url: publicUrl })
+  return NextResponse.json({ url: urlWithBust })
 }
