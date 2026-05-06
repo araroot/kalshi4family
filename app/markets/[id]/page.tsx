@@ -17,6 +17,21 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
+function friendlyTime(iso: string): string {
+  const date = new Date(iso)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return format(date, 'MMM d, h:mm a')
+}
+
 export default async function MarketDetailPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createClient()
@@ -137,12 +152,15 @@ export default async function MarketDetailPage({ params }: PageProps) {
               <h3 className="text-sm font-semibold text-white mb-3">Bets ({allBets.length})</h3>
               <div className="space-y-2">
                 {allBets.map(bet => (
-                  <div key={bet.id} className="flex items-center justify-between py-1.5 border-b border-[#1a1a1a] last:border-0">
+                  <div key={bet.id} className="flex items-center justify-between py-2 border-b border-[#1a1a1a] last:border-0">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center text-xs font-bold text-[#a1a1aa]">
                         {(bet.user?.name ?? '?').charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-sm text-white">{bet.user?.name ?? 'Unknown'}</span>
+                      <div>
+                        <span className="text-sm text-white">{bet.user?.name ?? 'Unknown'}</span>
+                        <p className="text-[11px] text-[#444]">{friendlyTime(bet.created_at)}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-[#555]">{bet.amount.toLocaleString()} pts</span>
