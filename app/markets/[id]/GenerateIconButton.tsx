@@ -1,14 +1,17 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, RefreshCw } from 'lucide-react'
+import { Sparkles, RefreshCw, ImageIcon } from 'lucide-react'
+import Image from 'next/image'
 
-export default function GenerateIconButton({ marketId, title, description, hasIcon }: {
+interface Props {
   marketId: string
   title: string
   description: string | null
-  hasIcon: boolean
-}) {
+  imageUrl: string | null
+}
+
+export default function GenerateIconButton({ marketId, title, description, imageUrl }: Props) {
   const router = useRouter()
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
@@ -35,18 +38,40 @@ export default function GenerateIconButton({ marketId, title, description, hasIc
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col items-start gap-1">
       <button
         onClick={generate}
         disabled={generating}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#312e81]/60 border border-[#4338ca]/50 text-[#a5b4fc] hover:bg-[#312e81] hover:border-[#6366f1]"
+        title={imageUrl ? 'Regenerate icon' : 'Generate icon'}
+        className="relative group w-20 h-20 rounded-xl overflow-hidden shrink-0 disabled:cursor-wait"
       >
-        {generating
-          ? <RefreshCw className="w-3 h-3 animate-spin" />
-          : <Sparkles className="w-3 h-3" />}
-        {generating ? 'Generating…' : hasIcon ? 'Regenerate icon' : 'Generate icon'}
+        {/* Icon or placeholder */}
+        {imageUrl ? (
+          <Image src={imageUrl} alt="Market icon" width={80} height={80} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
+            <ImageIcon className="w-6 h-6 text-[#555]" />
+          </div>
+        )}
+
+        {/* Hover / loading overlay */}
+        <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 transition-opacity duration-150 rounded-xl
+          ${generating
+            ? 'bg-black/60 opacity-100'
+            : 'bg-black/0 group-hover:bg-black/60 opacity-0 group-hover:opacity-100'
+          }`}
+        >
+          {generating
+            ? <RefreshCw className="w-5 h-5 text-white animate-spin" />
+            : <RefreshCw className="w-5 h-5 text-white" />
+          }
+          <span className="text-[10px] font-semibold text-white leading-tight text-center px-1">
+            {generating ? 'Generating…' : imageUrl ? 'Regenerate' : 'Generate'}
+          </span>
+        </div>
       </button>
-      {error && <p className="text-xs text-[#f87171]">{error}</p>}
+
+      {error && <p className="text-xs text-[#f87171] max-w-[80px] leading-tight">{error}</p>}
     </div>
   )
 }

@@ -68,7 +68,15 @@ export default async function MarketDetailPage({ params }: PageProps) {
           {/* Header card */}
           <div className="rounded-xl border border-[#2a2a2a] bg-[#111] p-5">
             <div className="flex items-start gap-4">
-              {market.image_url && (
+              {/* Icon: creator gets interactive regenerate button, others get static image */}
+              {isCreator ? (
+                <GenerateIconButton
+                  marketId={market.id}
+                  title={market.title}
+                  description={market.description}
+                  imageUrl={market.image_url ?? null}
+                />
+              ) : market.image_url ? (
                 <Image
                   src={market.image_url}
                   alt=""
@@ -76,7 +84,8 @@ export default async function MarketDetailPage({ params }: PageProps) {
                   height={80}
                   className="rounded-xl object-cover shrink-0"
                 />
-              )}
+              ) : null}
+
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="text-xs font-medium text-[#555] bg-[#1a1a1a] px-2 py-0.5 rounded-full">{market.category}</span>
@@ -114,14 +123,6 @@ export default async function MarketDetailPage({ params }: PageProps) {
 
             <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#1a1a1a]">
               <ShareButton text={shareText} size="sm" />
-              {isCreator && (
-                <GenerateIconButton
-                  marketId={market.id}
-                  title={market.title}
-                  description={market.description}
-                  hasIcon={!!market.image_url}
-                />
-              )}
             </div>
           </div>
 
