@@ -11,11 +11,11 @@ function extractSvg(raw: string): string | null {
   let s = raw.replace(/^```(?:svg|xml)?\s*/i, '').replace(/\s*```$/, '').trim()
   // Strip XML declaration
   s = s.replace(/^<\?xml[^?]*\?>\s*/i, '').trim()
-  // If it already starts with <svg we're good
-  if (s.toLowerCase().startsWith('<svg')) return s
-  // Otherwise try to pull out the svg element
-  const match = s.match(/<svg[\s\S]*<\/svg>/i)
-  return match ? match[0] : null
+  // Try to pull out a complete <svg>...</svg> element
+  const match = s.match(/<svg[\s\S]*?<\/svg>/i)
+  if (match) return match[0]
+  // If it starts with <svg but has no closing tag, it's truncated — reject
+  return null
 }
 
 export async function POST(request: Request) {
@@ -49,7 +49,7 @@ Output ONLY raw SVG. No markdown, no XML declaration, no explanation. Start dire
   try {
     message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     })
   } catch (err: unknown) {
