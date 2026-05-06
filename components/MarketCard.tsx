@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { formatDistanceToNow, isPast } from 'date-fns'
 import { MessageSquare, Coins, Clock, XCircle, CheckCircle2 } from 'lucide-react'
 import type { Market, Bet } from '@/types'
@@ -39,8 +40,12 @@ export default function MarketCard({ market }: MarketCardProps) {
                 {market.status.charAt(0).toUpperCase() + market.status.slice(1)}
               </span>
             </div>
-            {/* Sparkline */}
-            <OddsSparkline history={history} width={100} height={32} />
+            {/* Sparkline or icon */}
+            {market.image_url ? (
+              <Image src={market.image_url} alt="" width={40} height={40} className="rounded-lg object-cover shrink-0" />
+            ) : (
+              <OddsSparkline history={history} width={100} height={32} />
+            )}
           </div>
 
           <h3 className="font-semibold text-white text-sm leading-snug line-clamp-2 group-hover:text-[#e5e5e5] transition-colors mb-3">

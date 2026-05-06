@@ -2,8 +2,9 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, CalendarDays, HelpCircle, Sparkles } from 'lucide-react'
+import { ArrowLeft, CalendarDays, HelpCircle, Sparkles, ImageIcon } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 const CATEGORIES = ['General', 'Sports', 'Family', 'Politics', 'Entertainment', 'Finance']
 
@@ -18,7 +19,13 @@ export default function NewMarketPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [refining, setRefining] = useState(false)
+  const [generatingIcon, setGeneratingIcon] = useState(false)
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const minDate = new Date()
+  minDate.setMinutes(minDate.getMinutes() + 30)
+  const minDateStr = minDate.toISOString().slice(0, 16)
 
   async function refineDescription() {
     if (!title.trim()) { setError('Add a question first so AI has context'); return }
@@ -45,13 +52,34 @@ export default function NewMarketPage() {
       }
     } catch {
       setError('AI refinement failed')
+      setRefining(false)
+      return
     }
     setRefining(false)
+
+    // Auto-generate icon after description is refined
+    generateIcon()
   }
 
-  const minDate = new Date()
-  minDate.setMinutes(minDate.getMinutes() + 30)
-  const minDateStr = minDate.toISOString().slice(0, 16)
+  async function generateIcon() {
+    if (!title.trim()) return
+    setGeneratingIcon(true)
+    setPendingImageUrl(null)
+    try {
+      const res = await fetch('/api/ai/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description }),
+      })
+      if (res.ok) {
+        const { url } = await res.json()
+        setPendingImageUrl(url)
+      }
+    } catch {
+      // Icon generation is non-critical, fail silently
+    }
+    setGeneratingIcon(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -74,6 +102,7 @@ export default function NewMarketPage() {
         close_date: new Date(closeDate).toISOString(),
         category,
         status: 'open',
+        image_url: pendingImageUrl ?? null,
       })
       .select()
       .single()
@@ -126,11 +155,11 @@ export default function NewMarketPage() {
                 <button
                   type="button"
                   onClick={refineDescription}
-                  disabled={refining || !title.trim()}
+                  disabled={refining || generatingIcon || !title.trim()}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-[#312e81]/60 border border-[#4338ca]/50 text-[#a5b4fc] hover:bg-[#312e81] hover:border-[#6366f1]"
                 >
                   <Sparkles className={`w-3 h-3 ${refining ? 'animate-spin' : ''}`} />
-                  {refining ? 'Refining…' : 'Refine with AI'}
+                  {refining ? 'Refining…' : generatingIcon ? 'Generating icon…' : 'Refine with AI'}
                 </button>
               </div>
             </div>
@@ -138,7 +167,7 @@ export default function NewMarketPage() {
               ref={textareaRef}
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder={"Add context, rules for resolution, source of truth…\n\nMarkdown supported: **bold**, _italic_, bullet lists, etc.\n\nOr click \"Refine with AI\" to generate a precise description from your question."}
+              placeholder={"Add context, rules for resolution, source of truth…\n\nMarkdown supported: **bold**, _italic_, bullet lists, etc.\n\nOr click \"Refine with AI\" to generate a precise description + icon."}
               rows={8}
               maxLength={5000}
               className={`w-full rounded-lg bg-[#1a1a1a] border text-white px-3 py-2.5 text-sm placeholder:text-[#555] focus:outline-none transition-colors resize-y font-mono leading-relaxed ${
@@ -147,6 +176,32 @@ export default function NewMarketPage() {
             />
             <p className="text-xs text-[#555] mt-1">Markdown supported — **bold**, _italic_, `code`, bullet lists, ## headings</p>
           </div>
+
+          {/* Icon preview */}
+          {(generatingIcon || pendingImageUrl) && (
+            <div className="flex items-center gap-3 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] p-3">
+              {generatingIcon ? (
+                <div className="w-14 h-14 rounded-xl bg-[#2a2a2a] flex items-center justify-center shrink-0 animate-pulse">
+                  <ImageIcon className="w-5 h-5 text-[#555]" />
+                </div>
+              ) : pendingImageUrl ? (
+                <Image src={pendingImageUrl} alt="Market icon" width={56} height={56} className="rounded-xl object-cover shrink-0" />
+              ) : null}
+              <div>
+                <p className="text-xs font-medium text-white">
+                  {generatingIcon ? 'Generating AI icon…' : 'Icon ready ✓'}
+                </p>
+                <p className="text-xs text-[#555]">
+                  {generatingIcon ? 'This takes ~5 seconds' : 'Will be attached to this market'}
+                </p>
+                {!generatingIcon && pendingImageUrl && (
+                  <button type="button" onClick={generateIcon} className="text-xs text-[#6366f1] hover:underline mt-0.5">
+                    Regenerate
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Category + Close date row */}
           <div className="grid grid-cols-2 gap-4">
@@ -194,7 +249,7 @@ export default function NewMarketPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || refining || generatingIcon}
             className="w-full h-10 rounded-lg bg-[#6366f1] hover:bg-[#5457e5] text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating…' : 'Create Market'}

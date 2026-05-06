@@ -7,9 +7,11 @@ import BetPanel from '@/components/BetPanel'
 import CommentThread from '@/components/CommentThread'
 import ShareButton from '@/components/ShareButton'
 import OddsChart from '@/components/OddsChart'
+import Image from 'next/image'
 import ResolvePanel from './ResolvePanel'
 import DisputePanel from './DisputePanel'
 import MarkdownDescription from '@/components/MarkdownDescription'
+import GenerateIconButton from './GenerateIconButton'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -65,17 +67,29 @@ export default async function MarketDetailPage({ params }: PageProps) {
         <div className="lg:col-span-2 space-y-5">
           {/* Header card */}
           <div className="rounded-xl border border-[#2a2a2a] bg-[#111] p-5">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="text-xs font-medium text-[#555] bg-[#1a1a1a] px-2 py-0.5 rounded-full">{market.category}</span>
-              <StatusBadge status={market.status} outcome={market.outcome} />
-              {hasDispute && (
-                <span className="flex items-center gap-1 text-xs font-medium text-[#f87171] bg-[#450a0a]/60 border border-[#7f1d1d]/40 px-2 py-0.5 rounded-full">
-                  <AlertCircle className="w-3 h-3" /> Disputed
-                </span>
+            <div className="flex items-start gap-4">
+              {market.image_url && (
+                <Image
+                  src={market.image_url}
+                  alt=""
+                  width={80}
+                  height={80}
+                  className="rounded-xl object-cover shrink-0"
+                />
               )}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-xs font-medium text-[#555] bg-[#1a1a1a] px-2 py-0.5 rounded-full">{market.category}</span>
+                  <StatusBadge status={market.status} outcome={market.outcome} />
+                  {hasDispute && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-[#f87171] bg-[#450a0a]/60 border border-[#7f1d1d]/40 px-2 py-0.5 rounded-full">
+                      <AlertCircle className="w-3 h-3" /> Disputed
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-xl font-bold text-white leading-snug mb-2">{market.title}</h1>
+              </div>
             </div>
-
-            <h1 className="text-xl font-bold text-white leading-snug mb-2">{market.title}</h1>
 
             {market.description && (
               <MarkdownDescription content={market.description} />
@@ -100,6 +114,14 @@ export default async function MarketDetailPage({ params }: PageProps) {
 
             <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#1a1a1a]">
               <ShareButton text={shareText} size="sm" />
+              {isCreator && (
+                <GenerateIconButton
+                  marketId={market.id}
+                  title={market.title}
+                  description={market.description}
+                  hasIcon={!!market.image_url}
+                />
+              )}
             </div>
           </div>
 
