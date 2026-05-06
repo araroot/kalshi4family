@@ -89,6 +89,7 @@ export default async function MarketDetailPage({ params }: PageProps) {
                   title={market.title}
                   description={market.description}
                   imageUrl={market.image_url ?? null}
+                  generationCount={market.icon_generation_count ?? 0}
                 />
               ) : market.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -153,7 +154,7 @@ export default async function MarketDetailPage({ params }: PageProps) {
                       </div>
                       <div>
                         <span className="text-sm text-white">{bet.user?.name ?? 'Unknown'}</span>
-                        <p className="text-[11px] text-[#444]">{friendlyTime(bet.created_at)}</p>
+                        <p className="text-[10px] text-[#777] mt-0.5 font-mono">{friendlyTime(bet.created_at)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

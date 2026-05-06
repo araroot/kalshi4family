@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, CalendarDays, HelpCircle, Sparkles, ImageIcon } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
 
 const CATEGORIES = ['General', 'Sports', 'Family', 'Politics', 'Entertainment', 'Finance']
 
@@ -103,6 +102,7 @@ export default function NewMarketPage() {
         category,
         status: 'open',
         image_url: pendingImageUrl ?? null,
+        icon_generation_count: pendingImageUrl ? 1 : 0,
       })
       .select()
       .single()
@@ -185,7 +185,8 @@ export default function NewMarketPage() {
                   <ImageIcon className="w-5 h-5 text-[#555]" />
                 </div>
               ) : pendingImageUrl ? (
-                <Image src={pendingImageUrl} alt="Market icon" width={56} height={56} className="rounded-xl object-cover shrink-0" />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={pendingImageUrl} alt="Market icon" width={56} height={56} className="rounded-xl object-cover shrink-0" />
               ) : null}
               <div>
                 <p className="text-xs font-medium text-white">

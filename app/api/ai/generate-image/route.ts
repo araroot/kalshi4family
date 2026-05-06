@@ -6,6 +6,9 @@ import { randomUUID } from 'crypto'
 
 const anthropic = new Anthropic()
 
+const FREE_GENERATIONS = 2
+const COST_PER_GENERATION = 10
+
 function extractSvg(raw: string): string | null {
   // Strip markdown code fences
   let s = raw.replace(/^```(?:svg|xml)?\s*/i, '').replace(/\s*```$/, '').trim()
@@ -29,6 +32,54 @@ export async function POST(request: Request) {
 
   const { title, description, marketId } = await request.json()
   if (!title?.trim()) return NextResponse.json({ error: 'Title required' }, { status: 400 })
+
+  let generationCount = 0
+
+  if (marketId) {
+    // Verify ownership and get current count
+    const { data: market } = await supabase
+      .from('markets')
+      .select('creator_id, icon_generation_count')
+      .eq('id', marketId)
+      .single()
+
+    if (!market || market.creator_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    generationCount = market.icon_generation_count ?? 0
+
+    if (generationCount >= FREE_GENERATIONS) {
+      // Charge points for 3rd+ generation (weekly first, then permanent)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('permanent_points, weekly_points')
+        .eq('id', user.id)
+        .single()
+
+      const total = (profile?.permanent_points ?? 0) + (profile?.weekly_points ?? 0)
+      if (!profile || total < COST_PER_GENERATION) {
+        return NextResponse.json(
+          { error: `Not enough points — need ${COST_PER_GENERATION} pts (you have ${total})` },
+          { status: 402 }
+        )
+      }
+
+      const weeklyUsed = Math.min(COST_PER_GENERATION, profile.weekly_points)
+      const permanentUsed = COST_PER_GENERATION - weeklyUsed
+      const { error: deductError } = await supabase
+        .from('profiles')
+        .update({
+          weekly_points: profile.weekly_points - weeklyUsed,
+          permanent_points: profile.permanent_points - permanentUsed,
+        })
+        .eq('id', user.id)
+
+      if (deductError) {
+        return NextResponse.json({ error: 'Failed to deduct points' }, { status: 500 })
+      }
+    }
+  }
 
   const prompt = `Create an expressive, detailed SVG icon (200×200) for a prediction market about: "${title}"${description ? `\n\nContext: ${description.slice(0, 200)}` : ''}
 
@@ -76,11 +127,13 @@ Output ONLY raw SVG. No markdown, no XML declaration, no explanation. Start dire
   if (uploadError) return NextResponse.json({ error: `Upload failed: ${uploadError.message}` }, { status: 500 })
 
   const { data: { publicUrl } } = admin.storage.from('market-images').getPublicUrl(storagePath)
-  // Append timestamp so regenerated icons bypass browser/CDN cache
   const urlWithBust = `${publicUrl}?v=${Date.now()}`
 
   if (marketId) {
-    await admin.from('markets').update({ image_url: urlWithBust }).eq('id', marketId)
+    await admin.from('markets').update({
+      image_url: urlWithBust,
+      icon_generation_count: generationCount + 1,
+    }).eq('id', marketId)
   }
 
   return NextResponse.json({ url: urlWithBust })
