@@ -72,7 +72,11 @@ export default async function MarketsPage({ searchParams }: PageProps) {
     user_bets: betsMap[m.id] ?? [],
     comment_count: commentCountMap[m.id] ?? 0,
     odds_history: oddsMap[m.id] ?? [50],
-  }))
+  })).sort((a, b) => {
+    if (a.status === 'cancelled' && b.status !== 'cancelled') return 1
+    if (a.status !== 'cancelled' && b.status === 'cancelled') return -1
+    return 0
+  })
 
   const openCount = enrichedMarkets.filter(m => m.status === 'open').length
 
