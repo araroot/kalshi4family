@@ -9,6 +9,7 @@ import ShareButton from '@/components/ShareButton'
 import OddsChart from '@/components/OddsChart'
 import ResolvePanel from './ResolvePanel'
 import DisputePanel from './DisputePanel'
+import EarlyClosePanel from './EarlyClosePanel'
 import MarkdownDescription from '@/components/MarkdownDescription'
 import GenerateIconButton from './GenerateIconButton'
 
@@ -64,6 +65,9 @@ export default async function MarketDetailPage({ params }: PageProps) {
 
   const isCreator = market.creator_id === user.id
   const total = market.yes_pool + market.no_pool
+  const otherBets = (allBets ?? []).filter(b => b.user_id !== user.id)
+  const otherBetCount = new Set(otherBets.map(b => b.user_id)).size
+  const otherBetsTotal = otherBets.reduce((s, b) => s + b.amount, 0)
   const yesPct = total > 0 ? Math.round((market.yes_pool / total) * 100) : 50
   const hasDispute = disputes?.some(d => d.status === 'pending')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://kalshi4family.vercel.app'
@@ -219,9 +223,19 @@ export default async function MarketDetailPage({ params }: PageProps) {
             existingBets={userBets ?? []}
           />
 
-          {/* Resolve panel — creator only, when market is locked */}
+          {/* Resolve panel — creator only, when market is locked or open */}
           {isCreator && (market.status === 'locked' || market.status === 'open') && (
             <ResolvePanel marketId={market.id} currentOutcome={market.outcome} />
+          )}
+
+          {/* Early close — creator only, while market is still open */}
+          {isCreator && market.status === 'open' && (market.creator_stake ?? 0) > 0 && (
+            <EarlyClosePanel
+              marketId={market.id}
+              creatorStake={market.creator_stake ?? 0}
+              otherBetCount={otherBetCount}
+              otherBetsTotal={otherBetsTotal}
+            />
           )}
 
           {/* Dispute panel — non-creator, after close */}

@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server'
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: marketId } = await params
 
-  // Verify caller identity with normal client (RLS-respecting)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -15,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: market } = await supabase
     .from('markets')
-    .select('id,creator_id,status,yes_pool,no_pool,title')
+    .select('id,creator_id,status,yes_pool,no_pool,title,creator_stake')
     .eq('id', marketId)
     .single()
 
@@ -36,7 +35,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     payouts[bet.id] = winningPool > 0 ? Math.round((bet.amount / winningPool) * totalPool) : bet.amount
   })
 
-  // Use service-role client for all writes that touch other users' data
   const admin = createAdminClient()
 
   await admin.from('markets').update({
@@ -60,6 +58,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   for (const bet of losers) {
     await admin.from('bets').update({ payout: 0 }).eq('id', bet.id)
+  }
+
+  // Return stake to creator on normal resolution
+  const stake = market.creator_stake ?? 0
+  if (stake > 0) {
+    const { data: creatorProf } = await admin.from('profiles').select('permanent_points').eq('id', market.creator_id).single()
+    if (creatorProf) {
+      await admin.from('profiles').update({
+        permanent_points: creatorProf.permanent_points + stake,
+        updated_at: new Date().toISOString(),
+      }).eq('id', market.creator_id)
+    }
   }
 
   const notifications = bets.map(bet => {

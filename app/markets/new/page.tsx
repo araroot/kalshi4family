@@ -1,8 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, CalendarDays, HelpCircle, Sparkles, ImageIcon } from 'lucide-react'
+import { ArrowLeft, CalendarDays, HelpCircle, Sparkles, ImageIcon, Coins } from 'lucide-react'
 import Link from 'next/link'
 
 const CATEGORIES = ['General', 'Sports', 'Family', 'Politics', 'Entertainment', 'Finance']
@@ -88,29 +87,25 @@ export default function NewMarketPage() {
     if (new Date(closeDate) <= new Date()) { setError('Close date must be in the future'); return }
 
     setLoading(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
-
-    const { data, error: err } = await supabase
-      .from('markets')
-      .insert({
+    const res = await fetch('/api/markets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         title: title.trim(),
         description: description.trim() || null,
-        creator_id: user.id,
         close_date: new Date(closeDate).toISOString(),
         category,
-        status: 'open',
         image_url: pendingImageUrl ?? null,
         icon_generation_count: pendingImageUrl ? 1 : 0,
-      })
-      .select()
-      .single()
+      }),
+    })
 
-    if (err) {
-      setError(err.message)
+    if (!res.ok) {
+      const d = await res.json()
+      setError(d.error ?? 'Failed to create market')
       setLoading(false)
     } else {
+      const data = await res.json()
       router.push(`/markets/${data.id}`)
     }
   }
@@ -234,12 +229,20 @@ export default function NewMarketPage() {
             </div>
           </div>
 
-          {/* Resolution note */}
-          <div className="flex items-start gap-2 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] p-3">
-            <HelpCircle className="w-4 h-4 text-[#6366f1] shrink-0 mt-0.5" />
-            <p className="text-xs text-[#a1a1aa]">
-              As the creator, <span className="text-white">you resolve this market</span> after it closes. You&apos;re the final arbiter — others can file a dispute which you must respond to.
-            </p>
+          {/* Stake + resolution note */}
+          <div className="space-y-2">
+            <div className="flex items-start gap-2 rounded-lg bg-[#1a1a1a] border border-[#f59e0b]/30 p-3">
+              <Coins className="w-4 h-4 text-[#f59e0b] shrink-0 mt-0.5" />
+              <p className="text-xs text-[#a1a1aa]">
+                Creating a market requires a <span className="text-[#f59e0b] font-semibold">100 pt stake</span> held in escrow. You get it back when you resolve the market. Close early and it&apos;s burned (or distributed to bettors).
+              </p>
+            </div>
+            <div className="flex items-start gap-2 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] p-3">
+              <HelpCircle className="w-4 h-4 text-[#6366f1] shrink-0 mt-0.5" />
+              <p className="text-xs text-[#a1a1aa]">
+                As the creator, <span className="text-white">you resolve this market</span> after it closes. You&apos;re the final arbiter — others can file a dispute which you must respond to.
+              </p>
+            </div>
           </div>
 
           {error && (

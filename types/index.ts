@@ -28,6 +28,7 @@ export interface Market {
   updated_at: string
   image_url?: string | null
   icon_generation_count?: number
+  creator_stake?: number
   creator?: Profile
   user_bets?: Bet[]
   comment_count?: number
