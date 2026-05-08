@@ -84,7 +84,28 @@ export default async function MarketDetailPage({ params }: PageProps) {
         {/* Left: Market info */}
         <div className="lg:col-span-2 space-y-5">
           {/* Header card */}
-          <div className="rounded-xl border border-[#2a2a2a] bg-[#111] p-5">
+          <div className="relative rounded-xl border border-[#2a2a2a] bg-[#111] p-5 overflow-hidden">
+            {market.status === 'cancelled' && (
+              <>
+                <div className="absolute inset-0 bg-black/45 z-10 pointer-events-none rounded-xl" />
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                  <div
+                    className="-rotate-[28deg] px-6 py-3 rounded-sm select-none"
+                    style={{
+                      border: '4px solid rgba(239,68,68,0.75)',
+                      boxShadow: '0 0 0 2px rgba(239,68,68,0.18), inset 0 0 16px rgba(239,68,68,0.08)',
+                    }}
+                  >
+                    <span
+                      className="block font-black text-[2.2rem] tracking-[0.45em] text-[#ef4444] uppercase"
+                      style={{ opacity: 0.82, textShadow: '0 0 16px rgba(239,68,68,0.45), 1px 1px 0 rgba(239,68,68,0.25)' }}
+                    >
+                      CANCELLED
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
             <div className="flex items-start gap-4">
               {/* Icon: creator gets interactive regenerate button, others get static image */}
               {isCreator ? (
