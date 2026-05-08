@@ -28,7 +28,31 @@ export default function MarketCard({ market }: MarketCardProps) {
 
   return (
     <Link href={`/markets/${market.id}`} className="block group">
-      <div className="rounded-xl border border-[#2a2a2a] bg-[#111] hover:border-[#333] hover:bg-[#141414] transition-all duration-200 overflow-hidden group-hover:shadow-lg group-hover:shadow-black/30">
+      <div className="relative rounded-xl border border-[#2a2a2a] bg-[#111] hover:border-[#333] hover:bg-[#141414] transition-all duration-200 overflow-hidden group-hover:shadow-lg group-hover:shadow-black/30">
+
+        {market.status === 'cancelled' && (
+          <>
+            {/* Dim the card content */}
+            <div className="absolute inset-0 bg-black/50 z-10 pointer-events-none rounded-xl" />
+            {/* Rubber stamp */}
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+              <div
+                className="-rotate-[28deg] px-5 py-2.5 rounded-sm select-none"
+                style={{
+                  border: '3.5px solid rgba(239,68,68,0.75)',
+                  boxShadow: '0 0 0 1.5px rgba(239,68,68,0.18), inset 0 0 12px rgba(239,68,68,0.08)',
+                }}
+              >
+                <span
+                  className="block font-black text-[1.6rem] tracking-[0.45em] text-[#ef4444] uppercase"
+                  style={{ opacity: 0.82, textShadow: '0 0 12px rgba(239,68,68,0.45), 1px 1px 0 rgba(239,68,68,0.25)' }}
+                >
+                  CANCELLED
+                </span>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Chart area */}
         <div className="relative px-4 pt-4 pb-2">
