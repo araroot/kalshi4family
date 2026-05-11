@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Shield, UserCheck, Flag } from 'lucide-react'
+import { Shield, UserCheck, Flag, Newspaper, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 import ApproveButton from './ApproveButton'
 import DisputeActions from './DisputeActions'
 
@@ -23,6 +24,22 @@ export default async function AdminPage() {
       <div className="flex items-center gap-2 mb-6">
         <Shield className="w-5 h-5 text-[#818cf8]" />
         <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+      </div>
+
+      {/* Quick links */}
+      <div className="mb-6">
+        <Link href="/weekly-report" className="flex items-center justify-between rounded-xl border border-[#312e81]/50 bg-[#1e1b4b]/30 hover:bg-[#1e1b4b]/60 hover:border-[#4338ca]/60 transition-colors p-4 group">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#312e81]/60 flex items-center justify-center shrink-0">
+              <Newspaper className="w-4 h-4 text-[#818cf8]" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Weekly Report</p>
+              <p className="text-xs text-[#555]">Wins, losses, action items &amp; stats for the week</p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-[#818cf8] transition-colors" />
+        </Link>
       </div>
 
       {/* Stats */}
