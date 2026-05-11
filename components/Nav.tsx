@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart2, Trophy, Shield, LogOut, Menu, X, Bell, Coins, TrendingUp } from 'lucide-react'
+import { BarChart2, Trophy, Shield, LogOut, Menu, X, Bell, Coins, TrendingUp, Newspaper } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
 
@@ -26,6 +26,7 @@ export default function Nav({ profile, unreadCount = 0 }: NavProps) {
   const links = [
     { href: '/markets', label: 'Markets', icon: TrendingUp },
     { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+    { href: '/weekly-report', label: 'Weekly', icon: Newspaper },
     ...(profile.is_admin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
   ]
 
