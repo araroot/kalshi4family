@@ -86,12 +86,12 @@ export default async function WeeklyReportPage() {
 
   const todoLines: string[] = []
   ;(lockedMarkets ?? []).slice(0, 3).forEach(m => {
-    const creator = (m.creator as { name: string } | null)?.name ?? 'Someone'
+    const creator = (m.creator as unknown as { name: string } | null)?.name ?? 'Someone'
     const overdue = formatDistanceToNow(new Date(m.close_date), { addSuffix: false })
     todoLines.push(`⏰ @${creator} — "${m.title}" locked ${overdue} ago, needs resolution!`)
   })
   ;(closingSoon ?? []).slice(0, 2).forEach(m => {
-    const creator = (m.creator as { name: string } | null)?.name ?? 'Someone'
+    const creator = (m.creator as unknown as { name: string } | null)?.name ?? 'Someone'
     const timeLeft = formatDistanceToNow(new Date(m.close_date), { addSuffix: true })
     todoLines.push(`⚠️ @${creator} — "${m.title}" closes ${timeLeft}!`)
   })
@@ -106,7 +106,7 @@ export default async function WeeklyReportPage() {
     lines.push(`🏆 *BIG WINS*`)
     wins.forEach((b, i) => {
       const net = (b.payout ?? 0) - b.amount
-      const name = (b.user as { name: string } | null)?.name ?? '?'
+      const name = (b.user as unknown as { name: string } | null)?.name ?? '?'
       lines.push(`${medals[i]} ${name} +${net.toLocaleString()} pts ✅`)
     })
     lines.push('')
@@ -115,7 +115,7 @@ export default async function WeeklyReportPage() {
   if (losses.length) {
     lines.push(`💸 *TOUGH LOSSES*`)
     losses.forEach(b => {
-      const name = (b.user as { name: string } | null)?.name ?? '?'
+      const name = (b.user as unknown as { name: string } | null)?.name ?? '?'
       lines.push(`😬 ${name} lost ${b.amount.toLocaleString()} pts ❌`)
     })
     lines.push('')
@@ -156,7 +156,7 @@ export default async function WeeklyReportPage() {
             </h2>
             <div className="space-y-2">
               {(lockedMarkets ?? []).slice(0, 3).map(m => {
-                const creator = (m.creator as { name: string } | null)?.name ?? 'Someone'
+                const creator = (m.creator as unknown as { name: string } | null)?.name ?? 'Someone'
                 const overdue = formatDistanceToNow(new Date(m.close_date), { addSuffix: false })
                 return (
                   <div key={m.id} className="flex items-start gap-2 text-sm">
@@ -170,7 +170,7 @@ export default async function WeeklyReportPage() {
                 )
               })}
               {(closingSoon ?? []).slice(0, 2).map(m => {
-                const creator = (m.creator as { name: string } | null)?.name ?? 'Someone'
+                const creator = (m.creator as unknown as { name: string } | null)?.name ?? 'Someone'
                 const timeLeft = formatDistanceToNow(new Date(m.close_date), { addSuffix: true })
                 return (
                   <div key={m.id} className="flex items-start gap-2 text-sm">
@@ -196,7 +196,7 @@ export default async function WeeklyReportPage() {
             <div className="space-y-2">
               {wins.map((b, i) => {
                 const net = (b.payout ?? 0) - b.amount
-                const name = (b.user as { name: string } | null)?.name ?? '?'
+                const name = (b.user as unknown as { name: string } | null)?.name ?? '?'
                 return (
                   <div key={b.id} className="flex items-center justify-between">
                     <span className="text-sm text-[#a1a1aa]">
@@ -219,7 +219,7 @@ export default async function WeeklyReportPage() {
             </h2>
             <div className="space-y-2">
               {losses.map(b => {
-                const name = (b.user as { name: string } | null)?.name ?? '?'
+                const name = (b.user as unknown as { name: string } | null)?.name ?? '?'
                 return (
                   <div key={b.id} className="flex items-center justify-between">
                     <span className="text-sm text-[#a1a1aa]">

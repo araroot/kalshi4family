@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
   if (overdueCount > 0) {
     const first = lockedMarkets![0]
-    const creatorName = (first.creator as { name: string } | null)?.name ?? 'Someone'
+    const creatorName = (first.creator as unknown as { name: string } | null)?.name ?? 'Someone'
     const overdue = formatDistanceToNow(new Date(first.close_date))
     lines.push(`⏰ @${creatorName} — "${first.title}" needs resolution (${overdue} overdue)`)
     if (overdueCount > 1) lines.push(`  +${overdueCount - 1} more market${overdueCount - 1 > 1 ? 's' : ''} pending`)
@@ -87,12 +87,12 @@ export async function POST(request: Request) {
 
   if (topWin) {
     const net = (topWin.payout ?? 0) - topWin.amount
-    const name = (topWin.user as { name: string } | null)?.name ?? '?'
+    const name = (topWin.user as unknown as { name: string } | null)?.name ?? '?'
     lines.push(`🏆 ${name} won +${net.toLocaleString()} pts this week!`)
   }
 
   if (topLoss) {
-    const name = (topLoss.user as { name: string } | null)?.name ?? '?'
+    const name = (topLoss.user as unknown as { name: string } | null)?.name ?? '?'
     lines.push(`😬 ${name} lost ${topLoss.amount.toLocaleString()} pts`)
   }
 
